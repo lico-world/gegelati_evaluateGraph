@@ -3,36 +3,68 @@
 #include <dirent.h>
 #include <cstring>
 
-#include "../include/evaluator.h"
-#include "../include/environment/improvedClassificationLearningAgent.h"
+#include <gegelati.h>
 
-bool isEnoughGraphs(int nbGrahs)
+//#include "../include/evaluator.h"
+#include "../include/environment/improvedClassificationLearningAgent.h"
+#include "../include/environment/dice_learning_environment.h"
+
+int howManyGraphs()
 {
-    /// @todo Use dirent to implement this verification
-    return true;
+    int graphCount = 0;
+    DIR * d;
+    struct dirent * entry;
+    std::string extension = "dot";
+
+    d = opendir("../../graphsToImport/");
+
+    while((entry = readdir(d)) != nullptr)
+    {
+        std::string fname = entry->d_name;
+
+        if(entry->d_type == DT_REG && fname.find(extension, (fname.length() - extension.length())) != std::string::npos)
+            graphCount++;
+    }
+
+    return graphCount;
 }
 
-void getFilenames()
+std::vector<std::pair<std::string, std::string>> * getFilenames()
 {
+    auto files = new std::vector<std::pair<std::string, std::string>>();
 
+    std::string path = "../../graphsToImport/", extension = "dot";
+    DIR * d;
+    struct dirent * entry;
+
+    d = opendir(path.c_str());
+
+    while((entry = readdir(d)) != nullptr)
+    {
+        std::string fname = entry->d_name;
+        if(entry->d_type == DT_REG && fname.find(extension, (fname.length() - extension.length())) != std::string::npos)
+        {
+            files->push_back(*new std::pair<std::string, std::string>(path + fname, fname));
+        }
+    }
+
+    return files;
 }
 
 int main()
 {
-    int nbGraphs = 0;
+    int nbGraphs = howManyGraphs();
     std::string folderPath = "../graphsToImport";
 
-    std::cout << "How many graphs to evaluate : ";
-    std::cin >> nbGraphs;
-    std::cout << std::endl;
+    std::cout << "How many graphs to evaluate : " << nbGraphs << std::endl;
 
-    if(!isEnoughGraphs(nbGraphs))
+    if(nbGraphs <= 0)
     {
-        std::cout << "You didn't provide the good amount of graphs." << std::endl;
+        std::cout << "There is no graph to evaluate." << std::endl;
         return 0;
     }
 
-    auto files = new std::vector<std::string>(nbGraphs);
+    auto files = getFilenames();
 
     // -----------------------------------------------------------------------------------------------------------------
     // ------------------------------------- Set up your own Gegelati environment --------------------------------------
@@ -77,20 +109,38 @@ int main()
 
     /// Set the parameters for the learning process
     Learn::LearningParameters params;
-    File::ParametersParser::loadParametersFromJson("/params.json", params);
+    File::ParametersParser::loadParametersFromJson("../../params.json", params);
 
-    Learn::ImprovedClassificationLearningEnvironment icle;
+    DiceLearningEnvironment diceLE;
+
+    Learn::ImprovedClassificationLearningAgent<Learn::ParallelLearningAgent> agent(diceLE, set, params);
+
+    Environment env(set, diceLE.getDataSources(), params.nbRegisters, params.nbProgramConstant);
 
     // -----------------------------------------------------------------------------------------------------------------
     // -----------------------------------------------------------------------------------------------------------------
     // -----------------------------------------------------------------------------------------------------------------
 
-    Evaluator e(diceLE, nbGraphs);
+    std::vector<TPG::TPGGraph> graphs;
+    for(int g=0 ; g<nbGraphs ; g++)
+        graphs.emplace_back(env);
+
+    for(int g=0 ; g<nbGraphs ; g++)
+        auto dot = new File::TPGGraphDotImporter(files->at(g).first.c_str(), env, graphs.at(g));
+
+    std::vector<TPG::TPGVertex> roots;
+    for(auto & graph : graphs)
+        roots.push_back(*graph.getRootVertices().front());
+
+    std::vector<double> res(nbGraphs);
 
     for(int g=0 ; g<nbGraphs ; g++)
     {
-//        e.addGraph("", env);
+        res.at(g) = agent.evaluateOneRoot(roots.at(g), Learn::LearningMode::TESTING)->getResult();
     }
+
+    for(int g=0 ; g<res.size() ; g++)
+        std::cout << "SCORE DU GRAPH n°" << g+1 << " (" << files->at(g).second << ") : " << res.at(g) << std::endl;
 
     return 0;
 }

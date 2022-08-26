@@ -30,8 +30,8 @@ DiceLearningEnvironment::DiceLearningEnvironment() : Learn::ImprovedClassificati
         this->classificationTable.push_back(*new std::vector<uint64_t>(NB_CLASS));
     */
 
-    if(EXPORT_DATA) // NOLINT
-        this->_csv = new DataExporter();
+//    if(EXPORT_DATA) // NOLINT
+//        this->_csv = new DataExporter();
 
     changeCurrentImage();
 }
@@ -79,7 +79,18 @@ void DiceLearningEnvironment::reset(size_t seed, Learn::LearningMode mode)
 
 std::vector<std::reference_wrapper<const Data::DataHandler>> DiceLearningEnvironment::getDataSources()
 {
-    return { this->currentSample };
+    auto datasources = new std::vector<std::reference_wrapper<const Data::DataHandler>>();
+
+    for(auto & sample : this->dataset->first)
+    {
+        auto s = new Data::Array2DWrapper<double>(IMG_SIZE, IMG_SIZE);
+        s->setPointer(&sample);
+        datasources->push_back(*s);
+    }
+
+    return *datasources;
+
+//    return { this->currentSample };
 }
 
 bool DiceLearningEnvironment::isCopyable() const
