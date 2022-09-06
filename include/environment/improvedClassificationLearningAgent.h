@@ -444,7 +444,7 @@ namespace Learn {
 
         for (int i = 0; i < this->tpg->getNbRootVertices(); i++)
         {
-            auto job = this->makeJob(i, mode);
+            auto job = this->makeJob(this->tpg->getRootVertices().at(i), mode);
             auto root = (*job).getRoot();
             this->archive.setRandomSeed(job->getArchiveSeed());
             std::shared_ptr<EvaluationResult> avgScore = this->evaluateJob(*tee, *job, generationNumber, mode, this->learningEnvironment);

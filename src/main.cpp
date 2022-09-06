@@ -115,30 +115,32 @@ int main()
 
     Learn::ImprovedClassificationLearningAgent<Learn::ParallelLearningAgent> agent(diceLE, set, params);
 
-    Environment env(set, diceLE.getDataSources(), params.nbRegisters, params.nbProgramConstant);
+//    Environment env(set, diceLE.getDataSources(), params.nbRegisters, params.nbProgramConstant);
+
+    auto env = agent.getEnvironment();
 
     // -----------------------------------------------------------------------------------------------------------------
     // -----------------------------------------------------------------------------------------------------------------
     // -----------------------------------------------------------------------------------------------------------------
 
-    std::vector<TPG::TPGGraph> graphs;
+    std::vector<TPG::TPGGraph *> graphs;
     for(int g=0 ; g<nbGraphs ; g++)
-        graphs.emplace_back(env);
+        graphs.push_back(new TPG::TPGGraph(env));
 
     for(int g=0 ; g<nbGraphs ; g++)
-        auto dot = new File::TPGGraphDotImporter(files->at(g).first.c_str(), env, graphs.at(g));
+        auto dot = new File::TPGGraphDotImporter(files->at(g).first.c_str(), env, *graphs.at(g));
 
-    std::vector<TPG::TPGVertex> roots;
+    std::vector<TPG::TPGVertex *> roots;
     for(auto & graph : graphs)
-        roots.push_back(*graph.getRootVertices().front());
+        roots.push_back(new TPG::TPGVertex(*graph->getRootVertices().front()));
 
     std::vector<double> res(nbGraphs);
 
     for(int g=0 ; g<nbGraphs ; g++)
     {
-        res.at(g) = agent.evaluateOneRoot(roots.at(g), Learn::LearningMode::TESTING)->getResult();
+//        res.at(g) = agent.evaluateOneRoot(roots.at(g), Learn::LearningMode::TESTING)->getResult();
+        res.at(g) = agent.evaluateOneRoot(0, Learn::LearningMode::TESTING, roots.at(g))->getResult();
     }
-
     for(int g=0 ; g<res.size() ; g++)
         std::cout << "SCORE DU GRAPH n°" << g+1 << " (" << files->at(g).second << ") : " << res.at(g) << std::endl;
 
