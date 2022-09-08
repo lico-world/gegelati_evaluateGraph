@@ -134,11 +134,16 @@ int main()
     for(auto & graph : graphs)
         roots.push_back(new TPG::TPGVertex(*graph->getRootVertices().front()));
 
+    
+
     std::vector<double> res(nbGraphs);
 
     for(int g=0 ; g<nbGraphs ; g++)
     {
-//        res.at(g) = agent.evaluateOneRoot(roots.at(g), Learn::LearningMode::TESTING)->getResult();
+//        std::cout << "nb : " << agent.getTPGGraph()->getNbRootVertices() << std::endl;
+        std::swap(*agent.getTPGGraph(), **std::make_shared<TPG::TPGGraph*>(graphs.at(g)));
+//        std::cout << "nb : " << agent.getTPGGraph()->getNbRootVertices() << std::endl;
+
         res.at(g) = agent.evaluateOneRoot(0, Learn::LearningMode::TESTING, roots.at(g))->getResult();
     }
     for(int g=0 ; g<res.size() ; g++)
